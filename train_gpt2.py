@@ -412,21 +412,25 @@ reference_num_iterations = 1480
 reference_sequence_length = 64*1024
 reference_val_tokens = 10485760
 
+batch_size_mi100 = 6
+sequence_length_6xGPU = reference_sequence_length
+num_iterations_6xGPU = int(reference_num_iterations * reference_ddp_world_size * reference_sequence_length * reference_batch_size/(ddp_world_size * sequence_length_6xGPU * batch_size_mi100))
+
 @dataclass
 class Hyperparameters:
     # data hyperparams
     input_bin : str = 'data/fineweb10B/fineweb_train_*.bin' # input .bin to train on
     input_val_bin : str = 'data/fineweb10B/fineweb_val_*.bin' # input .bin to eval validation loss on
     # optimization hyperparams
-    batch_size : int = 12 # batch size, in sequences, across all devices
-    sequence_length : int = reference_sequence_length # sequence length, in tokens
-    num_iterations : int = int((reference_ddp_world_size*reference_batch_size/(ddp_world_size*12)) * 1480) # 1480 # number of iterations to run
+    batch_size : int = batch_size_mi100 # batch size, in sequences, across all devices
+    sequence_length : int = sequence_length_6xGPU # sequence length, in tokens
+    num_iterations : int = num_iterations_6xGPU # 1480 # number of iterations to run
     warmup_iters : int = 0
     cooldown_iters : int = 600 # number of iterations of linear warmup/cooldown for triangular or trapezoidal schedule
     weight_decay : float = 0
     # evaluation and logging hyperparams
     val_loss_every : int = 125 # every how many steps to evaluate val loss? 0 for only at the end
-    val_tokens : int = reference_sequence_length*ddp_world_size*round(reference_val_tokens/(reference_sequence_length*ddp_world_size)) # how many tokens of validation data? it's important to keep this fixed for consistent comparisons
+    val_tokens : int = sequence_length_6xGPU*ddp_world_size*round(reference_val_tokens/(sequence_length_6xGPU*ddp_world_size)) # how many tokens of validation data? it's important to keep this fixed for consistent comparisons
 args = Hyperparameters()
 
 # set up DDP (distributed data parallel). torchrun sets this env variable
