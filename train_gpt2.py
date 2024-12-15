@@ -408,15 +408,15 @@ class Hyperparameters:
     input_bin : str = 'data/fineweb10B/fineweb_train_*.bin' # input .bin to train on
     input_val_bin : str = 'data/fineweb10B/fineweb_val_*.bin' # input .bin to eval validation loss on
     # optimization hyperparams
-    batch_size : int = 8 # batch size, in sequences, across all devices
+    batch_size : int = 12 # batch size, in sequences, across all devices
     sequence_length : int = 64*1024 # sequence length, in tokens
-    num_iterations : int = 1480 # number of iterations to run
+    num_iterations : int = int((8*8/(6*12)) * 1480) # 1480 # number of iterations to run
     warmup_iters : int = 0
     cooldown_iters : int = 600 # number of iterations of linear warmup/cooldown for triangular or trapezoidal schedule
     weight_decay : float = 0
     # evaluation and logging hyperparams
     val_loss_every : int = 125 # every how many steps to evaluate val loss? 0 for only at the end
-    val_tokens : int = 10485760 # how many tokens of validation data? it's important to keep this fixed for consistent comparisons
+    val_tokens : int = 10485762 # 10485760 # how many tokens of validation data? it's important to keep this fixed for consistent comparisons
 args = Hyperparameters()
 
 # set up DDP (distributed data parallel). torchrun sets this env variable
@@ -454,9 +454,9 @@ def print0(s, logonly=False):
 # log information about the hardware/software environment this is running on
 # and print the full `nvidia-smi` to file
 print0(f'Running python {sys.version}')
-print0(f'Running pytorch {torch.version.__version__} compiled for CUDA {torch.version.cuda}\nnvidia-smi:')
+print0(f'Running pytorch {torch.version.__version__} compiled for CUDA {torch.version.cuda}\nrocm-smi:')
 import subprocess
-result = subprocess.run(['nvidia-smi'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+result = subprocess.run(['rocm-smi'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 print0(f'{result.stdout}', logonly=True)
 print0('='*100, logonly=True)
 
