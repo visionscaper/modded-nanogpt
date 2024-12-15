@@ -402,6 +402,16 @@ class DistributedDataLoader:
 # -----------------------------------------------------------------------------
 # int main
 
+ddp_rank = int(os.environ['RANK'])
+ddp_local_rank = int(os.environ['LOCAL_RANK'])
+ddp_world_size = int(os.environ['WORLD_SIZE'])
+
+reference_ddp_world_size = 8
+reference_batch_size = 8
+reference_num_iterations = 1480
+reference_sequence_length = 64*1024
+reference_val_tokens = 10485760
+
 @dataclass
 class Hyperparameters:
     # data hyperparams
@@ -409,20 +419,17 @@ class Hyperparameters:
     input_val_bin : str = 'data/fineweb10B/fineweb_val_*.bin' # input .bin to eval validation loss on
     # optimization hyperparams
     batch_size : int = 12 # batch size, in sequences, across all devices
-    sequence_length : int = 64*1024 # sequence length, in tokens
-    num_iterations : int = int((8*8/(6*12)) * 1480) # 1480 # number of iterations to run
+    sequence_length : int = reference_sequence_length # sequence length, in tokens
+    num_iterations : int = int((reference_ddp_world_size*reference_batch_size/(ddp_world_size*12)) * 1480) # 1480 # number of iterations to run
     warmup_iters : int = 0
     cooldown_iters : int = 600 # number of iterations of linear warmup/cooldown for triangular or trapezoidal schedule
     weight_decay : float = 0
     # evaluation and logging hyperparams
     val_loss_every : int = 125 # every how many steps to evaluate val loss? 0 for only at the end
-    val_tokens : int = 10485762 # 10485760 # how many tokens of validation data? it's important to keep this fixed for consistent comparisons
+    val_tokens : int = reference_sequence_length*ddp_world_size*round(reference_val_tokens/(reference_sequence_length*ddp_world_size)) # how many tokens of validation data? it's important to keep this fixed for consistent comparisons
 args = Hyperparameters()
 
 # set up DDP (distributed data parallel). torchrun sets this env variable
-ddp_rank = int(os.environ['RANK'])
-ddp_local_rank = int(os.environ['LOCAL_RANK'])
-ddp_world_size = int(os.environ['WORLD_SIZE'])
 assert torch.cuda.is_available()
 device = torch.device(f'cuda:{ddp_local_rank}')
 torch.cuda.set_device(device)
@@ -459,6 +466,13 @@ import subprocess
 result = subprocess.run(['rocm-smi'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 print0(f'{result.stdout}', logonly=True)
 print0('='*100, logonly=True)
+
+print0(f"num_iterations: \n"
+       f"Reference: {reference_num_iterations}\n"
+       f"Actual: {args.num_iterations}\n\n")
+print0(f"val_tokens: \n"
+       f"Reference: {reference_val_tokens}\n"
+       f"Actual: {args.val_tokens}\n\n")
 
 # calculate the number of steps to take in the val loop.
 assert args.val_tokens % (args.sequence_length * ddp_world_size) == 0
