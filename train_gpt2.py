@@ -414,7 +414,7 @@ reference_val_tokens = 10485760
 
 # Batch size, accumulations steps = 1
 no_acc_batch_size = ddp_world_size
-sequence_length_MI100 = 24 * 1024
+sequence_length_MI100 = reference_sequence_length
 num_iterations_MI100 = int(reference_num_iterations * reference_ddp_world_size * reference_sequence_length * reference_batch_size / (ddp_world_size * sequence_length_MI100 * no_acc_batch_size))
 
 @dataclass
